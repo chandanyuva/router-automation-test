@@ -1,5 +1,6 @@
 const db = require('../db/init');
 const logger = require('../utils/logger');
+const switchService = require('../services/switchService');
 
 
 // GET /api/routers - Get all routers (optionally filter by switch_node_id)
@@ -76,6 +77,49 @@ const addRouter = (req, res) => {
   }
 };
 
+// POST /api/routers/:id/power - Turn a router on or off
+const toggleRouterPower = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // Expecting { "action": "on" } or { "action": "off" }
+    if (action !== 'on' && action !== 'off') {
+      return res.status(400).json({ error: 'Action must be "on" or "off"' });
+    }
+    // 1. Get the router and its associated switch data in one query using a JOIN
+    const query = `
+                SELECT 
+                    r.position_in_switch, 
+                    s.switch_node_ip, 
+                    s.switch_node_mac 
+                FROM routers r
+                JOIN switch_nodes s ON r.switch_node_id = s.id
+                WHERE r.id = ?
+            `;
+    const routerData = db.prepare(query).get(id);
+    if (!routerData) {
+      return res.status(404).json({ error: 'Router or associated switch not found' });
+    }
+    // 2. Call the hardware service
+    const success = await switchService.togglePower(
+      routerData.switch_node_ip,
+      routerData.switch_node_mac,
+      routerData.position_in_switch,
+      action
+    );
+    if (success) {
+      // 3. Update the database to reflect the new power status
+      db.prepare('UPDATE routers SET power_status = ? WHERE id = ?').run(action, id);
+      logger.info(`User ${req.user.email} toggled router ${id} power to ${action}`);
+      return res.json({ message: `Router powered ${action} successfully` });
+    } else {
+      return res.status(502).json({ error: 'Failed to communicate with the hardware switch' });
+    }
+  } catch (error) {
+    logger.error(`Error toggling router power: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // DELETE /api/routers/:id - Delete a router (Admin Only)
 const deleteRouter = (req, res) => {
   try {
@@ -92,4 +136,4 @@ const deleteRouter = (req, res) => {
     res.status(500).json({ error: 'Failed to delete router' });
   }
 };
-module.exports = { getAllRouters, getRouterById, addRouter, deleteRouter };
+module.exports = { getAllRouters, getRouterById, addRouter, deleteRouter, toggleRouterPower };

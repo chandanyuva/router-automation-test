@@ -10,6 +10,7 @@ router.use(isAuthenticated);
 // Read operations (available to any authenticated user)
 router.get('/', routerController.getAllRouters);
 router.get('/:id', routerController.getRouterById);
+router.post('/:id/power', routerController.toggleRouterPower);
 
 // Write/Delete operations (require Admin privileges)
 router.post('/', isAdmin, routerController.addRouter);
