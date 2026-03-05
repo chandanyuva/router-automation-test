@@ -93,6 +93,35 @@ const addRouter = (req, res) => {
   }
 };
 
+// PUT /api/routers/:id - Update a router (Admin Only)
+const updateRouter = (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // If security_types is provided as an array, stringify it
+    if (updates.security_types && Array.isArray(updates.security_types)) {
+      updates.security_types = JSON.stringify(updates.security_types);
+    }
+    // Build a dynamic SQL update string based on provided fields
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    const setString = keys.map(k => `${k} = ?`).join(', ');
+    const values = Object.values(updates);
+    values.push(id); // for the WHERE id = ?
+    const stmt = db.prepare(`UPDATE routers SET ${setString} WHERE id = ?`);
+    const result = stmt.run(...values);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Router not found' });
+    }
+    logger.info(`Admin ${req.user.email} updated router ID: ${id}`);
+    res.json({ message: 'Router updated successfully' });
+  } catch (error) {
+    logger.error(`Error updating router ${req.params.id}: ${error.message}`);
+    res.status(500).json({ error: 'Failed to update router' });
+  }
+};
+
 // POST /api/routers/:id/power - Turn a router on or off
 const toggleRouterPower = async (req, res) => {
   try {
@@ -152,4 +181,4 @@ const deleteRouter = (req, res) => {
     res.status(500).json({ error: 'Failed to delete router' });
   }
 };
-module.exports = { getAllRouters, getRouterById, addRouter, deleteRouter, toggleRouterPower };
+module.exports = { getAllRouters, getRouterById, addRouter, updateRouter, deleteRouter, toggleRouterPower };

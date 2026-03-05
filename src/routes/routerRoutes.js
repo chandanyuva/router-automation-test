@@ -15,5 +15,6 @@ router.post('/:id/power', routerController.toggleRouterPower);
 // Write/Delete operations (require Admin privileges)
 router.post('/', isAdmin, routerController.addRouter);
 router.delete('/:id', isAdmin, routerController.deleteRouter);
+router.put('/:id', isAdmin, routerController.updateRouter);
 
 module.exports = router;

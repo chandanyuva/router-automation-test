@@ -1,0 +1,67 @@
+1. Test Login (Saves the Cookie)
+This command sends the POST request with the admin credentials and saves the resulting cookie into a temporary file named cookies.txt.
+
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@local.host", "password":"admin"}' \
+  -c cookies.txt
+
+Expected Output:
+{message:Logged in successfully,user:{id:1,email:admin@local.host,role:admin}}
+
+
+2. Test the Protected /me Route
+This command sends a GET request and uses the -b flag to read the token from cookies.txt and send it to the server.
+
+curl -X GET http://localhost:3000/api/auth/me \
+  -b cookies.txt
+
+Expected Output (If successful):
+{user:{id:1,email:admin@local.host,role:admin,iat:1700000000,exp:1700086400}}
+
+
+3. Test Failure (No Cookie)
+Try hitting the protected route without providing the cookie file. It should be rejected.
+
+curl -X GET http://localhost:3000/api/auth/me
+
+Expected Output:
+{error:Authentication required}
+
+
+4. Test Logout (Clears the Cookie)
+This command tells the server to clear the cookie.
+
+curl -X POST http://localhost:3000/api/auth/logout \
+  -b cookies.txt \
+  -c cookies.txt
+
+Expected Output:
+{message:Logged out successfully}
+If you run the Test 2 command again after logging out, it should now fail with "Authentication required".
+
+switch routes
+
+1.  Get All Switches:
+        curl -X GET http://localhost:3000/api/switches -b cookies.txt
+
+2.  Add a New Switch (Since you are logged in as Admin):
+        curl -X POST http://localhost:3000/api/switches \
+      -b cookies.txt \
+      -H "Content-Type: application/json" \
+      -d '{"switch_node_ip":"192.168.1.200", "switch_node_mac":"AA:BB:CC:DD:EE:FF"}'
+
+router routes
+
+1. Get All Routers:
+      curl -X GET http://localhost:3000/api/routers -b cookies.txt
+   
+2. Get Routers for a specific Switch (e.g., Switch ID 1):
+      curl -X GET "http://localhost:3000/api/routers?switch_node_id=1" -b cookies.txt
+
+turn on/off a router
+
+curl -X POST http://localhost:3000/api/routers/1/power \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{"action": "on"}'
