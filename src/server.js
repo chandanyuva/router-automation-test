@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
 const cors = require('cors');
 
+const authRoutes = require('./routes/authRoutes');
 
 // This require will trigger the database initialization
 const db = require('./db/init');
@@ -28,6 +29,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Router Automation API is running' });
 });
 
+app.use('/api/auth', authRoutes);
 
 // Start the server
 app.listen(PORT, () => {
