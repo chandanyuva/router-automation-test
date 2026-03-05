@@ -3,15 +3,19 @@ require('dotenv').config(); // Load variables from .env
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
+const cors = require('cors');
 
 
 // This require will trigger the database initialization
 const db = require('./db/init');
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
+app.use(cors({
+  origin: 'http://localhost:5173', // Replace with your frontend's actual URL/port
+  credentials: true // Crucial for sending/receiving HttpOnly cookies
+}));
 
 // Middleware
 app.use(express.json()); // To parse JSON bodies

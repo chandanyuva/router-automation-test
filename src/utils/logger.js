@@ -5,7 +5,7 @@ const path = require('path');
 const fileTransport = new DailyRotateFile({
   filename: path.join(__dirname, '../../logs/application-%DATE%.log'),
   datePattern: 'YYYY-MM-DD',
-  zippedArchive: true, // Compress old logs to save space
+  zippedArchive: false, // Compress old logs to save space
   maxSize: '20m',      // Max size per file before rotating early
   maxFiles: '30d'      // KEEP LOGS FOR 30 DAYS, THEN DELETE
 });
