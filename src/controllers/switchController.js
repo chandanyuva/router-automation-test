@@ -2,6 +2,8 @@ const db = require('../db/init');
 
 const logger = require('../utils/logger');
 
+const switchService = require('../services/switchService');
+
 // GET /api/switches - Get all switches
 const getAllSwitches = (req, res) => {
   try {
@@ -51,6 +53,41 @@ const addSwitch = (req, res) => {
   }
 };
 
+// POST /api/switches/:id/power-all - Turn all routers on a switch on/off
+const toggleAllPower = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // { "action": "on" } or { "action": "off" }
+    if (action !== 'on' && action !== 'off') {
+      return res.status(400).json({ error: 'Action must be "on" or "off"' });
+    }
+    const switchNode = db.prepare('SELECT * FROM switch_nodes WHERE id = ?').get(id);
+    if (!switchNode) {
+      return res.status(404).json({ error: 'Switch not found' });
+    }
+    // Use the existing togglePower service, but pass "all" as the position
+    const success = await switchService.togglePower(
+      switchNode.switch_node_ip,
+      switchNode.switch_node_mac,
+      'all',
+      action
+    );
+    if (success) {
+      // Update all routers on this switch in the database
+      db.prepare('UPDATE routers SET power_status = ? WHERE switch_node_id = ?').run(action, id);
+
+      logger.info(`User ${req.user.email} turned ${action} ALL routers on switch ${id}`);
+      return res.json({ message: `All routers on switch powered ${action} successfully` });
+    } else {
+      return res.status(502).json({ error: 'Failed to communicate with the hardware switch' });
+    }
+  } catch (error) {
+    logger.error(`Error toggling all power on switch ${req.params.id}: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
 // DELETE /api/switches/:id - Delete a switch (Admin Only)
 const deleteSwitch = (req, res) => {
   try {
@@ -73,4 +110,4 @@ const deleteSwitch = (req, res) => {
   }
 };
 
-module.exports = { getAllSwitches, getSwitchById, addSwitch, deleteSwitch };
+module.exports = { getAllSwitches, getSwitchById, addSwitch, deleteSwitch, toggleAllPower };

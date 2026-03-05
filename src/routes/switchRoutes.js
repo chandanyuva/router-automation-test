@@ -10,6 +10,7 @@ router.use(isAuthenticated);
 // Read operations (available to any authenticated user)
 router.get('/', switchController.getAllSwitches);
 router.get('/:id', switchController.getSwitchById);
+router.post('/:id/power-all', switchController.toggleAllPower);
 
 // Write/Delete operations (require Admin privileges)
 router.post('/', isAdmin, switchController.addSwitch);
