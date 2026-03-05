@@ -1,9 +1,11 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 const logger = require('../utils/logger');
-const bcrypt = require('bcrypt');
-// This will create a file named 'database.sqlite' in the db folder
+const { runSeed } = require('./seed'); // Import our new seed script
 const dbPath = path.join(__dirname, 'database.sqlite');
+// Check if the file exists BEFORE we let better-sqlite3 create it
+const dbExists = fs.existsSync(dbPath);
 const db = new Database(dbPath, { verbose: (msg) => logger.info(`[DB] ${msg}`) });
 function initializeDB() {
   logger.info('Initializing Database Tables...');
@@ -46,17 +48,15 @@ function initializeDB() {
             role TEXT DEFAULT 'user'
         )
     `);
-  // 4. Seed an initial Admin user if the table is empty
-  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-  if (userCount.count === 0) {
-    const defaultPassword = 'admin'; // You should change this after first login
-    const hash = bcrypt.hashSync(defaultPassword, 10);
-    db.prepare(`INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)`).run('admin@local.host', hash, 'admin');
-    logger.info('Created default admin user: admin@local.host / admin');
-  }
-  logger.info('Database initialized successfully.');
+  logger.info('Database tables verified/created successfully.');
 }
-// Run the initialization
+// Run table creation
 initializeDB();
-// Export the db instance for use in our controllers/services
+// Only run the seed script if the database file was just created
+if (!dbExists) {
+  logger.info('New database detected. Triggering seed script...');
+  runSeed(db);
+} else {
+  logger.info('Existing database found. Skipping seed script.');
+}
 module.exports = db;
