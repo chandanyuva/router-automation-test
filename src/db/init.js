@@ -39,6 +39,7 @@ function initializeDB() {
             wireless_ssid_5ghz TEXT,
             wireless_ssid_6ghz TEXT,
             wireless_password TEXT,
+            security_types TEXT,
             admin_page_url TEXT,
             admin_page_username TEXT,
             admin_page_password TEXT,

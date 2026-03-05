@@ -13,6 +13,15 @@ const getAllRouters = (req, res) => {
     } else {
       routers = db.prepare('SELECT * FROM routers').all();
     }
+    // Parse security_types back to JSON array
+    routers = routers.map(router => {
+      if (router.security_types) {
+        try {
+          router.security_types = JSON.parse(router.security_types);
+        } catch (e) { /* ignore parse errors */ }
+      }
+      return router;
+    });
     res.json({ routers });
   } catch (error) {
     logger.error(`Error fetching routers: ${error.message}`);
@@ -29,7 +38,12 @@ const getRouterById = (req, res) => {
     if (!router) {
       return res.status(404).json({ error: 'Router not found' });
     }
-
+    // Parse security_types back to JSON array
+    if (router.security_types) {
+      try {
+        router.security_types = JSON.parse(router.security_types);
+      } catch (e) { /* ignore parse errors */ }
+    }
     res.json({ router });
   } catch (error) {
     logger.error(`Error fetching router ${req.params.id}: ${error.message}`);
@@ -44,29 +58,31 @@ const addRouter = (req, res) => {
       manufacturer, model, country, serial_number, category,
       switch_node_id, position_in_switch,
       wireless_ssid_24ghz, wireless_ssid_5ghz, wireless_ssid_6ghz, wireless_password,
+      security_types, // <--- ADD THIS
       admin_page_url, admin_page_username, admin_page_password
     } = req.body;
-    // Basic validation
     if (!switch_node_id || position_in_switch === undefined) {
       return res.status(400).json({ error: 'switch_node_id and position_in_switch are required' });
     }
-    // Verify the switch exists
     const switchExists = db.prepare('SELECT id FROM switch_nodes WHERE id = ?').get(switch_node_id);
     if (!switchExists) {
       return res.status(404).json({ error: 'Provided switch_node_id does not exist' });
     }
+    // Convert the array to a JSON string, or default to null if not provided
+    const securityTypesStr = security_types ? JSON.stringify(security_types) : null;
     const insert = db.prepare(`
             INSERT INTO routers (
                 manufacturer, model, country, serial_number, category,
                 switch_node_id, position_in_switch,
                 wireless_ssid_24ghz, wireless_ssid_5ghz, wireless_ssid_6ghz, wireless_password,
-                admin_page_url, admin_page_username, admin_page_password
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                security_types, admin_page_url, admin_page_username, admin_page_password
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
     const result = insert.run(
       manufacturer, model, country, serial_number, category,
       switch_node_id, position_in_switch,
       wireless_ssid_24ghz, wireless_ssid_5ghz, wireless_ssid_6ghz, wireless_password,
+      securityTypesStr, // <--- ADD THIS
       admin_page_url, admin_page_username, admin_page_password
     );
     logger.info(`Admin ${req.user.email} added new router: ${manufacturer} ${model} (ID: ${result.lastInsertRowid})`);
