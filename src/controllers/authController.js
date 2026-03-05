@@ -36,8 +36,10 @@ const login = (req, res) => {
     // 4. Set the token as an HTTP-only cookie
     res.cookie('token', token, {
       httpOnly: true, // Prevents client-side JS from reading the cookie
-      secure: process.env.NODE_ENV === 'production', // Requires HTTPS in production
-      sameSite: 'strict', // Protects against Cross-Site Request Forgery (CSRF)
+      // secure: process.env.NODE_ENV === 'production', // Requires HTTPS in production
+      secure: false, // works with http
+      // sameSite: 'strict', // Protects against Cross-Site Request Forgery (CSRF)
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     });
     logger.info(`User logged in: ${email}`);
@@ -58,8 +60,10 @@ const logout = (req, res) => {
   // Clear the HTTP-only cookie
   res.clearCookie('token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    // secure: process.env.NODE_ENV === 'production',
+    secure: false,
+    // sameSite: 'strict',
+    sameSite: 'lax',
   });
 
   logger.info('User logged out');
