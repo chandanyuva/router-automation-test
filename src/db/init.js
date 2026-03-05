@@ -1,12 +1,18 @@
 const Database = require('better-sqlite3');
+
 const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
+
 const { runSeed } = require('./seed'); // Import our new seed script
 const dbPath = path.join(__dirname, 'database.sqlite');
+
 // Check if the file exists BEFORE we let better-sqlite3 create it
 const dbExists = fs.existsSync(dbPath);
+
 const db = new Database(dbPath, { verbose: (msg) => logger.info(`[DB] ${msg}`) });
+
+
 function initializeDB() {
   logger.info('Initializing Database Tables...');
   // 1. Create Switch Nodes Table
@@ -50,8 +56,10 @@ function initializeDB() {
     `);
   logger.info('Database tables verified/created successfully.');
 }
+
 // Run table creation
 initializeDB();
+
 // Only run the seed script if the database file was just created
 if (!dbExists) {
   logger.info('New database detected. Triggering seed script...');
@@ -59,4 +67,5 @@ if (!dbExists) {
 } else {
   logger.info('Existing database found. Skipping seed script.');
 }
+
 module.exports = db;
