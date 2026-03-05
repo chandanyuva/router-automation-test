@@ -7,6 +7,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
 const switchRoutes = require('./routes/switchRoutes');
+const routerRoutes = require('./routes/routerRoutes');
 
 // This require will trigger the database initialization
 const db = require('./db/init');
@@ -32,6 +33,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/switches', switchRoutes);
+app.use('/api/routers', routerRoutes);
 
 // Start the server
 app.listen(PORT, () => {
