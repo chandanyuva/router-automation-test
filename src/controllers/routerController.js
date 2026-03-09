@@ -98,16 +98,30 @@ const updateRouter = (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-
     // If security_types is provided as an array, stringify it
     if (updates.security_types && Array.isArray(updates.security_types)) {
       updates.security_types = JSON.stringify(updates.security_types);
     }
-    // Build a dynamic SQL update string based on provided fields
-    const keys = Object.keys(updates);
-    if (keys.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    // SECURITY FIX: Define the EXACT columns that are allowed to be updated
+    const allowedColumns = [
+      'manufacturer', 'model', 'country', 'serial_number', 'category',
+      'power_status', 'switch_node_id', 'position_in_switch',
+      'wireless_ssid_24ghz', 'wireless_ssid_5ghz', 'wireless_ssid_6ghz',
+      'wireless_password', 'security_types', 'admin_page_url',
+      'admin_page_username', 'admin_page_password'
+    ];
+    // Filter the incoming request body to ONLY include allowed columns
+    const filteredUpdates = {};
+    for (const key of Object.keys(updates)) {
+      if (allowedColumns.includes(key)) {
+        filteredUpdates[key] = updates[key];
+      }
+    }
+    // Build the dynamic SQL update string securely
+    const keys = Object.keys(filteredUpdates);
+    if (keys.length === 0) return res.status(400).json({ error: 'No valid fields provided to update' });
     const setString = keys.map(k => `${k} = ?`).join(', ');
-    const values = Object.values(updates);
+    const values = Object.values(filteredUpdates);
     values.push(id); // for the WHERE id = ?
     const stmt = db.prepare(`UPDATE routers SET ${setString} WHERE id = ?`);
     const result = stmt.run(...values);
@@ -121,7 +135,6 @@ const updateRouter = (req, res) => {
     res.status(500).json({ error: 'Failed to update router' });
   }
 };
-
 // POST /api/routers/:id/power - Turn a router on or off
 const toggleRouterPower = async (req, res) => {
   try {
