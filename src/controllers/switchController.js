@@ -48,7 +48,9 @@ const addSwitch = (req, res) => {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       return res.status(409).json({ error: 'A switch with this MAC address already exists' });
     }
-    logger.error(`Error adding switch: ${error.message}`);
+
+    // Improve this log to include the specific error message
+    logger.error(`Error adding switch [DB Error]: ${error.message}`);
     res.status(500).json({ error: 'Failed to add switch' });
   }
 };
