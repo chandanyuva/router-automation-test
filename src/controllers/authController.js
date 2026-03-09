@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 // The secret key used to sign the JWT (from your .env file)
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_do_not_use_in_prod';
 
-const login = (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -21,7 +21,7 @@ const login = (req, res) => {
     }
 
     // 2. Compare the provided password with the stored hash
-    const isMatch = bcrypt.compareSync(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
