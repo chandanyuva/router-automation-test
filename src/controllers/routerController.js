@@ -126,8 +126,10 @@ const updateRouter = (req, res) => {
 const toggleRouterPower = async (req, res) => {
   try {
     const { id } = req.params;
-    const { action } = req.body; // Expecting { "action": "on" } or { "action": "off" }
-    if (action !== 'on' && action !== 'off') {
+    // Grab action and immediately convert to lowercase
+    const actionInput = req.body.action || '';
+    const normalizedAction = actionInput.toLowerCase(); // "ON", "On", "on" all become "on"
+    if (normalizedAction !== 'on' && normalizedAction !== 'off') {
       return res.status(400).json({ error: 'Action must be "on" or "off"' });
     }
     // 1. Get the router and its associated switch data in one query using a JOIN
@@ -149,11 +151,11 @@ const toggleRouterPower = async (req, res) => {
       routerData.switch_node_ip,
       routerData.switch_node_mac,
       routerData.position_in_switch,
-      action
+      normalizedAction
     );
     if (success) {
-      // 3. Update the database to reflect the new power status
-      db.prepare('UPDATE routers SET power_status = ? WHERE id = ?').run(action, id);
+      // Store the normalized lowercase string in the DB for consistency
+      db.prepare('UPDATE routers SET power_status = ? WHERE id = ?').run(normalizedAction, id);
       logger.info(`User ${req.user.email} toggled router ${id} power to ${action}`);
       return res.json({ message: `Router powered ${action} successfully` });
     } else {

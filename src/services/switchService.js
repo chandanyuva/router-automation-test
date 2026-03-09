@@ -12,14 +12,18 @@ const logger = require('../utils/logger');
  */
 
 async function togglePower(switchIp, switchMac, position, action) {
-
-  if (action !== 'on' && action !== 'off') {
+  // 1. Normalize the action to uppercase for the hardware
+  const hardwareAction = String(action).toUpperCase(); // "on" or "ON" becomes "ON"
+  if (hardwareAction !== 'ON' && hardwareAction !== 'OFF') {
     logger.error(`Invalid action '${action}' requested for relay ${position}`);
     return false;
   }
-  // Determine the path based on whether 'position' is "all" or a specific number
-  const pathSegment = position === 'all' ? 'all' : `D${position}`;
-  const url = `http://${switchIp}/${pathSegment}/${action}?mac=${switchMac}`;
+  // 2. Determine the path segment, ensuring "all" becomes "ALL"
+  const isAll = String(position).toUpperCase() === 'ALL';
+  const pathSegment = isAll ? 'ALL' : `D${position}`;
+
+  // Resulting URL example: http://192.168.1.177/ALL/ON?mac=...
+  const url = `http://${switchIp}/${pathSegment}/${hardwareAction}?mac=${switchMac}`;
   try {
     logger.info(`Sending hardware request: ${url}`);
 
@@ -27,7 +31,7 @@ async function togglePower(switchIp, switchMac, position, action) {
     const timeout = position === 'all' ? 8000 : 5000;
     const response = await axios.get(url, { timeout });
     if (response.status === 200) {
-      logger.info(`Successfully turned ${action} relay(s) '${pathSegment}' on switch ${switchIp}`);
+      logger.info(`Successfully turned ${hardwareAction} relay(s) '${pathSegment}' on switch ${switchIp}`);
       return true;
     } else {
       logger.warn(`Switch responded with status ${response.status} for relay(s) '${pathSegment}'`);
