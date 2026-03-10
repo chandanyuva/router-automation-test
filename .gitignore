@@ -2,3 +2,5 @@
 /package-lock.json
 /logs
 /src/db/database.sqlite
+/src/tmp/*
+.vscode/settings.json
