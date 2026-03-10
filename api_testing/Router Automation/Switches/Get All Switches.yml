@@ -1,0 +1,11 @@
+info:
+  name: Get All Switches
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/switches"
+  body:
+    type: none
+  auth: inherit

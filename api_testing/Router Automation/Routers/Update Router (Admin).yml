@@ -1,0 +1,16 @@
+info:
+  name: Update Router (Admin)
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/routers/1"
+  body:
+    type: json
+    data: |-
+      {
+        "power_status": "off",
+        "wireless_password": "newpassword123!"
+      }
+  auth: inherit

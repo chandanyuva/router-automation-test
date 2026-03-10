@@ -1,0 +1,27 @@
+info:
+  name: Add Router (Admin)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/routers"
+  body:
+    type: json
+    data: |-
+      {
+        "manufacturer": "TP-Link",
+        "model": "Archer AX50",
+        "switch_node_id": 1,
+        "position_in_switch": 4,
+        "wireless_ssid_24ghz": "TP-Link_2.4GHz",
+        "wireless_password": "password123",
+        "security_types": ["WPA2", "WPA3"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

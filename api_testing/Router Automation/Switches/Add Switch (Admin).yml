@@ -1,0 +1,16 @@
+info:
+  name: Add Switch (Admin)
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/switches"
+  body:
+    type: json
+    data: |-
+      {
+        "switch_node_ip": "192.168.1.177",
+        "switch_node_mac": "00:1A:2B:3C:4D:5E"
+      }
+  auth: inherit

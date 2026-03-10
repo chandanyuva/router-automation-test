@@ -1,0 +1,23 @@
+info:
+  name: Connect
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/wifi/connect"
+  body:
+    type: json
+    data: |-
+      {
+        "ssid": "Chandan",
+        "password": "yuva7892330906",
+        "securityType": "WPA2"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

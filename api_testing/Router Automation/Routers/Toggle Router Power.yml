@@ -1,0 +1,15 @@
+info:
+  name: Toggle Router Power
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/routers/1/power"
+  body:
+    type: json
+    data: |-
+      {
+        "action": "on"
+      }
+  auth: inherit

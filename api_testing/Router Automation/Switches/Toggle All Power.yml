@@ -1,0 +1,15 @@
+info:
+    name: Toggle All Power
+    type: http
+    seq: 4
+
+http:
+    method: POST
+    url: "{{baseUrl}}/switches/1/power-all"
+    body:
+        type: json
+        data: |-
+            {
+              "action": "on"
+            }
+    auth: inherit
