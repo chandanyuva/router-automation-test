@@ -70,5 +70,84 @@ const logout = (req, res) => {
   res.json({ message: 'Logged out successfully' });
 };
 
+const register = async (req, res) => {
+  try {
+    const { email, password, role = 'user' } = req.body;
 
-module.exports = { login, logout };
+    // 1. Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // 2. Check if user already exists
+    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
+    // 3. Hash password
+    const hash = await bcrypt.hash(password, 10);
+
+    // 4. Insert new user
+    const insert = db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)');
+    const result = insert.run(email, hash, role);
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: { id: result.lastInsertRowid, email, role }
+    });
+  } catch (error) {
+    logger.error(`Register error: ${error.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const getAllUsers = (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, email, role FROM users').all();
+    res.json({ users });
+  } catch (error) {
+    logger.error(`Error fetching users: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+const updateUserRole = (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    const stmt = db.prepare('UPDATE users SET role = ? WHERE id = ?');
+    const result = stmt.run(role, id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'User role updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+};
+
+const deleteUser = (req, res) => {
+  try {
+    const { id } = req.params;
+    const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+    const result = stmt.run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+};
+
+module.exports = { login, logout, register, getAllUsers, updateUserRole, deleteUser };
