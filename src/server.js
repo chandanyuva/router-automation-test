@@ -5,6 +5,10 @@ const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
 const cors = require('cors');
 
+const http = require('http');
+const socketManager = require('./utils/socketManager');
+const wifiWorker = require('./services/wifiWorker');
+
 const authRoutes = require('./routes/authRoutes');
 const switchRoutes = require('./routes/switchRoutes');
 const routerRoutes = require('./routes/routerRoutes');
@@ -38,7 +42,19 @@ app.use('/api/routers', routerRoutes);
 app.use('/api/wifi', wifiRoutes);
 
 // Start the server
-app.listen(PORT, () => {
+
+// Create the HTTP server wrapping the Express app
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+socketManager.init(server);
+
+// Start the background Wi-Fi poller
+wifiWorker.startPolling();
+
+// Start the server (using server.listen instead of app.listen)
+server.listen(PORT, () => {
   logger.info(`Server is starting...`);
   logger.info(`Server is running on http://localhost:${PORT}`);
+  logger.info(`WebSocket server is running`);
 });
