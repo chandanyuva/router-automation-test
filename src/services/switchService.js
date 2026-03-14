@@ -1,5 +1,5 @@
 const axios = require('axios');
-const logger = require('../utils/logger');
+const { emitLog } = require('../utils/liveLogger');
 
 /**
  * Toggles the power state of a specific relay, or all relays, on the NodeMCU switch.
@@ -25,20 +25,20 @@ async function togglePower(switchIp, switchMac, position, action) {
   // Resulting URL example: http://192.168.1.177/ALL/ON?mac=...
   const url = `http://${switchIp}/${pathSegment}/${hardwareAction}?mac=${switchMac}`;
   try {
-    logger.info(`Sending hardware request: ${url}`);
+    emitLog(`Sending hardware request to ${switchIp} (Relay: ${pathSegment}, Action: ${hardwareAction})`);
 
     // Slightly longer timeout if we are doing a bulk operation
     const timeout = position === 'all' ? 8000 : 5000;
     const response = await axios.get(url, { timeout });
     if (response.status === 200) {
-      logger.info(`Successfully turned ${hardwareAction} relay(s) '${pathSegment}' on switch ${switchIp}`);
+      emitLog(`Hardware switch confirmed: Relay ${pathSegment} is now ${hardwareAction}`, 'info');
       return true;
     } else {
-      logger.warn(`Switch responded with status ${response.status} for relay(s) '${pathSegment}'`);
+      emitLog(`Switch responded with unexpected status ${response.status}`, 'warn');
       return false;
     }
   } catch (error) {
-    logger.error(`Failed to reach switch at ${switchIp}: ${error.message}`);
+    emitLog(`Failed to reach hardware switch at ${switchIp}: ${error.message}`, 'error');
     return false;
   }
 }

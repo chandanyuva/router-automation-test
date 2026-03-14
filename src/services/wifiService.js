@@ -4,9 +4,12 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../utils/logger');
 
+const { emitLog } = require('../utils/liveLogger');
+
 const execPromise = util.promisify(exec);
 const WIFI_INTERFACE = process.env.WIFI_INTERFACE || 'WiFi';
 const TMP_DIR = path.join(__dirname, '..', 'tmp');
+
 
 /**
  * Helper to run shell commands
@@ -14,22 +17,25 @@ const TMP_DIR = path.join(__dirname, '..', 'tmp');
 async function runCommand(command) {
     try {
         const { stdout, stderr } = await execPromise(command);
-        if (stderr) logger.warn(`Command warning (${command}): ${stderr}`);
+        if (stderr) emitLog(`Command warning (${command}): ${stderr}`, "warn");
         return stdout;
     } catch (error) {
-        logger.error(`Command failed (${command}): ${error.message}`);
+        emitLog(`Command failed (${command}): ${error.message}`, "error");
         throw error;
     }
 }
+
+
 
 /**
  * Scans for visible Wi-Fi networks and returns detailed objects (SSID, Signal, Band, etc.).
  */
 async function scanNetworks() {
-    logger.info(`Scanning for detailed Wi-Fi networks on interface: ${WIFI_INTERFACE}`);
+    emitLog(`Starting Wi-Fi scan on interface: ${WIFI_INTERFACE}...`);
     try {
         // We add "mode=bssid" to get Signal, Band, Channel, etc.
         const stdout = await runCommand(`netsh wlan show networks mode=bssid interface="${WIFI_INTERFACE}"`);
+        emitLog('Scan complete. Parsing results...');
 
         const lines = stdout.split('\n');
         const networks = [];
@@ -103,9 +109,12 @@ async function scanNetworks() {
             }
         }
 
-        return Array.from(uniqueNetworksMap.values());
+        const results = Array.from(uniqueNetworksMap.values());
+        emitLog(`Found ${results.length} unique networks.`, 'info');
+        return results;
+
     } catch (error) {
-        logger.error('Failed to scan networks', error);
+        emitLog(`Failed to scan networks: ${error.message}`, 'error');
         throw new Error('Failed to scan for Wi-Fi networks');
     }
 }
@@ -184,24 +193,31 @@ function generateProfileXml(ssid, password, securityType = 'WPA2') {
  * Timeout increased to 20 seconds.
  */
 async function connectToNetwork(ssid, password, securityType = 'WPA2') {
-    logger.info(`Attempting to connect to SSID: ${ssid} (${securityType})`);
+    emitLog(`[Action] Initiating connection to: ${ssid} (${securityType})`);
     const xmlPath = path.join(TMP_DIR, `${ssid}.xml`);
 
     try {
         // 1. Generate and save the XML profile
+        emitLog('1/4: Generating Windows XML profile...', 'info');
         const xmlContent = generateProfileXml(ssid, password, securityType);
         await fs.writeFile(xmlPath, xmlContent, 'utf-8');
 
         // 2. Add the profile to Windows
+        emitLog('2/4: Injecting profile into Windows adapter...', 'info');
         await runCommand(`netsh wlan add profile filename="${xmlPath}" interface="${WIFI_INTERFACE}"`);
 
         // 3. Command Windows to connect
+        emitLog(`3/4: Executing connect command...`, 'info');
         await runCommand(`netsh wlan connect name="${ssid}" ssid="${ssid}" interface="${WIFI_INTERFACE}"`);
 
         // 4. Poll for connection state (up to 20 seconds)
         const MAX_RETRIES = 20;
+        emitLog(`4/4: Polling Windows adapter for connection state (timeout: ${MAX_RETRIES}s)...`, 'info');
         for (let i = 0; i < MAX_RETRIES; i++) {
             await new Promise(res => setTimeout(res, 1000)); // Wait 1 second
+
+            // Only log every 5 seconds so we don't spam the UI too fast
+            if (i > 0 && i % 5 === 0) emitLog(`Waiting for adapter... (${i}/${MAX_RETRIES}s)`);
 
             try {
                 const statusOutput = await runCommand(`netsh wlan show interfaces`);
@@ -213,29 +229,29 @@ async function connectToNetwork(ssid, password, securityType = 'WPA2') {
                 const ssidMatch = ssidRegex.test(statusOutput);
 
                 if (stateMatch && ssidMatch) {
-                    logger.info(`Successfully connected to ${ssid} after ${i + 1} seconds.`);
+                    emitLog(`[Success] Connected to ${ssid} in ${i + 1} seconds!`, 'info');
                     return true;
                 }
             } catch (e) {
-                logger.warn(`Polling error on attempt ${i + 1}: ${e.message}`);
+                emitLog(`Polling error on attempt ${i + 1}: ${e.message}`);
                 // Continue polling even if a single check fails
             }
         }
 
-        logger.error(`Timeout (${MAX_RETRIES}s): Failed to connect to ${ssid}`);
+        emitLog(`[Timeout] Adapter failed to connect to ${ssid} within 20 seconds.`, 'error');
         return false;
 
     } catch (error) {
-        logger.error(`Error connecting to ${ssid}:`, error);
+        emitLog(`[Error] Connection sequence failed: ${error.message}`, 'error');
         return false;
     } finally {
         // 5. Cleanup the XML file no matter what happened
         try {
             await fs.unlink(xmlPath);
-            logger.info(`Deleted temporary XML profile for ${ssid}`);
+            emitLog(`Cleaned up temporary XML file for security.`);
         } catch (e) {
             if (e.code !== 'ENOENT') {
-                logger.error(`Failed to delete temporary XML profile for ${ssid}:`, e);
+                emitLog(`Failed to delete temporary XML profile for ${ssid}:`, e);
             }
         }
     }
@@ -245,12 +261,13 @@ async function connectToNetwork(ssid, password, securityType = 'WPA2') {
  * Disconnects from the current Wi-Fi network.
  */
 async function disconnect() {
-    logger.info(`Disconnecting from Wi-Fi interface: ${WIFI_INTERFACE}`);
+    emitLog(`Disconnecting from Wi-Fi interface: ${WIFI_INTERFACE}`);
     try {
         await runCommand(`netsh wlan disconnect interface="${WIFI_INTERFACE}"`);
+        emitLog('Successfully disconnected adapter.', 'info');
         return true;
     } catch (error) {
-        logger.error('Failed to disconnect Wi-Fi', error);
+        emitLog(`Failed to disconnect: ${error.message}`, 'error');
         return false;
     }
 }
@@ -258,6 +275,8 @@ async function disconnect() {
 /**
  * Gets the current connection status and detailed metrics of the Wi-Fi interface.
  */
+//  DONT USE WEBSOCKETS EMMIT LOGGER HERE THIS FUNCTION RUNS EVERY 5 SECONDS]
+
 async function getStatus() {
     logger.info(`Getting Wi-Fi status for interface: ${WIFI_INTERFACE}`);
     try {
