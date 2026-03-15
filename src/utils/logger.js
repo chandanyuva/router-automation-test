@@ -1,28 +1,29 @@
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
-// Configure the daily transport
+
 const fileTransport = new DailyRotateFile({
   filename: path.join(__dirname, '../../logs/application-%DATE%.log'),
   datePattern: 'YYYY-MM-DD',
-  zippedArchive: false, // Compress old logs to save space
-  maxSize: '20m',      // Max size per file before rotating early
-  maxFiles: '30d'      // KEEP LOGS FOR 30 DAYS, THEN DELETE
+  zippedArchive: false,
+  maxSize: '20m',
+  maxFiles: '30d'
 });
-// Create the logger instance
+
 const logger = winston.createLogger({
   level: 'info',
+  // Use structured JSON for the physical log files
   format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.printf(info => `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`)
+    winston.format.timestamp(),
+    winston.format.json()
   ),
   transports: [
     fileTransport,
-    // Also log to the console during development
+    // Keep console output pretty and readable for humans
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.simple()
+        winston.format.printf(info => `[${info.timestamp}] ${info.level}: ${info.message} ${Object.keys(info).length > 2 ? JSON.stringify(info, (k, v) => (k === 'level' || k === 'message' || k === 'timestamp' ? undefined : v)) : ''}`)
       )
     })
   ]

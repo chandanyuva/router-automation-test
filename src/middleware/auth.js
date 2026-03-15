@@ -22,7 +22,7 @@ const isAuthenticated = (req, res, next) => {
     // Move to the next middleware or controller
     next();
   } catch (error) {
-    logger.error(`JWT Verification failed: ${error.message}`);
+    logger.error('JWT Verification failed', { error: error.message, stack: error.stack });
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

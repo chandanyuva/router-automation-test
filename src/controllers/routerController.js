@@ -1,6 +1,7 @@
 const db = require('../db/init');
 const logger = require('../utils/logger');
 const switchService = require('../services/switchService');
+const { emitLog } = require('../utils/liveLogger');
 
 
 // GET /api/routers - Get all routers (optionally filter by switch_node_id)
@@ -24,7 +25,7 @@ const getAllRouters = (req, res) => {
     });
     res.json({ routers });
   } catch (error) {
-    logger.error(`Error fetching routers: ${error.message}`);
+    logger.error('Error fetching routers', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch routers' });
   }
 };
@@ -46,7 +47,7 @@ const getRouterById = (req, res) => {
     }
     res.json({ router });
   } catch (error) {
-    logger.error(`Error fetching router ${req.params.id}: ${error.message}`);
+    logger.error('Error fetching router', { routerId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch router' });
   }
 };
@@ -85,10 +86,10 @@ const addRouter = (req, res) => {
       securityTypesStr, // <--- ADD THIS
       admin_page_url, admin_page_username, admin_page_password
     );
-    logger.info(`Admin ${req.user.email} added new router: ${manufacturer} ${model} (ID: ${result.lastInsertRowid})`);
+    logger.info('Router created', { routerId: result.lastInsertRowid, manufacturer, model });
     res.status(201).json({ message: 'Router added successfully', id: result.lastInsertRowid });
   } catch (error) {
-    logger.error(`Error adding router: ${error.message}`);
+    logger.error('Error adding router', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to add router' });
   }
 };
@@ -128,10 +129,10 @@ const updateRouter = (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Router not found' });
     }
-    logger.info(`Admin ${req.user.email} updated router ID: ${id}`);
+    logger.info('Router updated', { routerId: id });
     res.json({ message: 'Router updated successfully' });
   } catch (error) {
-    logger.error(`Error updating router ${req.params.id}: ${error.message}`);
+    logger.error('Error updating router', { routerId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to update router' });
   }
 };
@@ -169,13 +170,13 @@ const toggleRouterPower = async (req, res) => {
     if (success) {
       // Store the normalized lowercase string in the DB for consistency
       db.prepare('UPDATE routers SET power_status = ? WHERE id = ?').run(normalizedAction, id);
-      logger.info(`User ${req.user.email} toggled router ${id} power to ${action}`);
-      return res.json({ message: `Router powered ${action} successfully` });
+      emitLog('Database updated: Router power status is now ' + normalizedAction, 'info');
+      return res.json({ message: `Router powered ${actionInput} successfully` });
     } else {
       return res.status(502).json({ error: 'Failed to communicate with the hardware switch' });
     }
   } catch (error) {
-    logger.error(`Error toggling router power: ${error.message}`);
+    logger.error('Error toggling router power', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -189,10 +190,10 @@ const deleteRouter = (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Router not found' });
     }
-    logger.info(`Admin ${req.user.email} deleted router ID: ${id}`);
+    logger.info('Router deleted', { routerId: id });
     res.json({ message: 'Router deleted successfully' });
   } catch (error) {
-    logger.error(`Error deleting router ${req.params.id}: ${error.message}`);
+    logger.error('Error deleting router', { routerId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to delete router' });
   }
 };

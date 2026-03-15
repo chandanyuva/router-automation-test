@@ -15,7 +15,7 @@ async function togglePower(switchIp, switchMac, position, action) {
   // 1. Normalize the action to uppercase for the hardware
   const hardwareAction = String(action).toUpperCase(); // "on" or "ON" becomes "ON"
   if (hardwareAction !== 'ON' && hardwareAction !== 'OFF') {
-    logger.error(`Invalid action '${action}' requested for relay ${position}`);
+    emitLog(`Invalid action '${action}' requested for relay ${position}`, 'error');
     return false;
   }
   // 2. Determine the path segment, ensuring "all" becomes "ALL"

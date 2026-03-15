@@ -27,16 +27,16 @@ const init = (httpServer) => {
             socket.user = decoded; // Attach user info to the socket
             next();
         } catch (err) {
-            logger.error(`WebSocket Auth Error: ${err.message}`);
+            logger.error('WebSocket Auth Error', { error: err.message, stack: err.stack });
             next(new Error('Authentication error: Invalid token'));
         }
     });
 
     io.on('connection', (socket) => {
-        logger.info(`Client connected via WebSocket: ${socket.user.email} (ID: ${socket.id})`);
+        logger.info('Client connected via WebSocket', { email: socket.user.email, id: socket.id });
 
         socket.on('disconnect', () => {
-            logger.info(`Client disconnected: ${socket.user.email}`);
+            logger.info('Client disconnected', { email: socket.user.email });
         });
     });
 

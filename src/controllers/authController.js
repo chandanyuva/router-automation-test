@@ -42,7 +42,6 @@ const login = async (req, res) => {
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     });
-    logger.info(`User logged in: ${email}`);
 
     // Return user data (excluding the password hash)
     res.json({
@@ -50,7 +49,7 @@ const login = async (req, res) => {
       user: { id: user.id, email: user.email, role: user.role }
     });
   } catch (error) {
-    logger.error(`Login error: ${error.message}`);
+    logger.error('Login error', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -66,7 +65,6 @@ const logout = (req, res) => {
     sameSite: 'lax',
   });
 
-  logger.info('User logged out');
   res.json({ message: 'Logged out successfully' });
 };
 
@@ -97,7 +95,7 @@ const register = async (req, res) => {
       user: { id: result.lastInsertRowid, email, role }
     });
   } catch (error) {
-    logger.error(`Register error: ${error.message}`);
+    logger.error('Register error', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -107,7 +105,7 @@ const getAllUsers = (req, res) => {
     const users = db.prepare('SELECT id, email, role FROM users').all();
     res.json({ users });
   } catch (error) {
-    logger.error(`Error fetching users: ${error.message}`);
+    logger.error('Error fetching users', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 };
@@ -130,6 +128,7 @@ const updateUserRole = (req, res) => {
 
     res.json({ message: 'User role updated successfully' });
   } catch (error) {
+    logger.error('Error updating user', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to update user' });
   }
 };
@@ -146,6 +145,7 @@ const deleteUser = (req, res) => {
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
+    logger.error('Error deleting user', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };

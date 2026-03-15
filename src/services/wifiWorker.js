@@ -19,7 +19,7 @@ const startPolling = () => {
             io.emit('wifi-status', status);
             
         } catch (error) {
-            logger.error(`Wi-Fi Polling Error: ${error.message}`);
+            logger.error('Wi-Fi Polling Error', { error: error.message, stack: error.stack });
         }
     }, 5000);
 };

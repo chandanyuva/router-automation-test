@@ -9,7 +9,7 @@ async function scan(req, res) {
         const ssids = await wifiService.scanNetworks();
         res.json({ success: true, count: ssids.length, ssids });
     } catch (error) {
-        logger.error(`Error in wifiController.scan: ${error.message}`);
+        logger.error('Error in wifiController.scan', { error: error.message, stack: error.stack });
         res.status(500).json({ success: false, error: 'Failed to scan for networks' });
     }
 }
@@ -34,7 +34,7 @@ async function connect(req, res) {
             res.status(500).json({ success: false, error: `Failed or timed out connecting to ${ssid}` });
         }
     } catch (error) {
-        logger.error(`Error in wifiController.connect: ${error.message}`);
+        logger.error('Error in wifiController.connect', { error: error.message, stack: error.stack });
         res.status(500).json({ success: false, error: 'Internal server error during connection attempt' });
     }
 }
@@ -51,7 +51,7 @@ async function disconnect(req, res) {
             res.status(500).json({ success: false, error: 'Failed to disconnect from Wi-Fi' });
         }
     } catch (error) {
-        logger.error(`Error in wifiController.disconnect: ${error.message}`);
+        logger.error('Error in wifiController.disconnect', { error: error.message, stack: error.stack });
         res.status(500).json({ success: false, error: 'Internal server error during disconnect' });
     }
 }
@@ -64,7 +64,7 @@ async function status(req, res) {
         const currentStatus = await wifiService.getStatus();
         res.json({ success: true, data: currentStatus });
     } catch (error) {
-        logger.error(`Error in wifiController.status: ${error.message}`);
+        logger.error('Error in wifiController.status', { error: error.message, stack: error.stack });
         res.status(500).json({ success: false, error: 'Failed to get Wi-Fi status' });
     }
 }

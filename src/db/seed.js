@@ -62,7 +62,7 @@ function runSeed(db) {
     insertData();
     logger.info('Database seeded successfully.');
   } catch (error) {
-    logger.error(`Error during seeding: ${error.message}`);
+    logger.error('Error during seeding', { error: error.message, stack: error.stack });
   }
 }
 module.exports = { runSeed };

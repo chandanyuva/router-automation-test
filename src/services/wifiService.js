@@ -278,7 +278,6 @@ async function disconnect() {
 //  DONT USE WEBSOCKETS EMMIT LOGGER HERE THIS FUNCTION RUNS EVERY 5 SECONDS]
 
 async function getStatus() {
-    logger.info(`Getting Wi-Fi status for interface: ${WIFI_INTERFACE}`);
     try {
         const stdout = await runCommand(`netsh wlan show interfaces`);
 
@@ -318,7 +317,7 @@ async function getStatus() {
             details: Object.keys(details).length > 0 ? details : null
         };
     } catch (error) {
-        logger.error('Failed to get Wi-Fi status', error);
+        logger.error('Failed to get Wi-Fi status', { error: error.message, stack: error.stack });
         return { connected: false, details: null, error: error.message };
     }
 }

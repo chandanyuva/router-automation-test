@@ -1,6 +1,7 @@
 const db = require('../db/init');
 
 const logger = require('../utils/logger');
+const { emitLog } = require('../utils/liveLogger');
 
 const switchService = require('../services/switchService');
 
@@ -10,7 +11,7 @@ const getAllSwitches = (req, res) => {
     const switches = db.prepare('SELECT * FROM switch_nodes').all();
     res.json({ switches });
   } catch (error) {
-    logger.error(`Error fetching switches: ${error.message}`);
+    logger.error('Error fetching switches', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch switches' });
   }
 };
@@ -27,7 +28,7 @@ const getSwitchById = (req, res) => {
 
     res.json({ switchNode });
   } catch (error) {
-    logger.error(`Error fetching switch ${req.params.id}: ${error.message}`);
+    logger.error('Error fetching switch', { switchId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch switch' });
   }
 };
@@ -41,7 +42,7 @@ const addSwitch = (req, res) => {
     }
     const insert = db.prepare('INSERT INTO switch_nodes (switch_node_ip, switch_node_mac) VALUES (?, ?)');
     const result = insert.run(switch_node_ip, switch_node_mac);
-    logger.info(`Admin ${req.user.email} added new switch: ${switch_node_ip} (${switch_node_mac})`);
+    logger.info('Switch created', { switchId: result.lastInsertRowid, ip: switch_node_ip, mac: switch_node_mac });
     res.status(201).json({ message: 'Switch added successfully', id: result.lastInsertRowid });
   } catch (error) {
     // Handle SQLite unique constraint error (e.g., MAC address already exists)
@@ -50,7 +51,7 @@ const addSwitch = (req, res) => {
     }
 
     // Improve this log to include the specific error message
-    logger.error(`Error adding switch [DB Error]: ${error.message}`);
+    logger.error('Error adding switch [DB Error]', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to add switch' });
   }
 };
@@ -80,13 +81,13 @@ const toggleAllPower = async (req, res) => {
     if (success) {
       // Update all routers on this switch in the database using normalizedAction
       db.prepare('UPDATE routers SET power_status = ? WHERE switch_node_id = ?').run(normalizedAction, id);
-      logger.info(`User ${req.user.email} turned ${normalizedAction} ALL routers on switch ${id}`);
+      emitLog('Database updated: All attached routers marked as ' + normalizedAction, 'info');
       return res.json({ message: `All routers on switch powered ${normalizedAction} successfully` });
     } else {
       return res.status(502).json({ error: 'Failed to communicate with the hardware switch' });
     }
   } catch (error) {
-    logger.error(`Error toggling all power on switch ${req.params.id}: ${error.message}`);
+    logger.error('Error toggling all power on switch', { switchId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -105,10 +106,10 @@ const deleteSwitch = (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Switch not found' });
     }
-    logger.info(`Admin ${req.user.email} deleted switch ID: ${id}`);
+    logger.info('Switch deleted', { switchId: id });
     res.json({ message: 'Switch deleted successfully' });
   } catch (error) {
-    logger.error(`Error deleting switch ${req.params.id}: ${error.message}`);
+    logger.error('Error deleting switch', { switchId: req.params.id, error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to delete switch' });
   }
 };

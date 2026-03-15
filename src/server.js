@@ -4,6 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
 const cors = require('cors');
+const requestLogger = require('./middleware/requestLogger');
 
 const http = require('http');
 const socketManager = require('./utils/socketManager');
@@ -28,11 +29,11 @@ app.use(cors({
 // Middleware
 app.use(express.json()); // To parse JSON bodies
 app.use(cookieParser()); // To parse cookies (for our JWT)
-
+// Global request logger
+app.use(requestLogger);
 
 // A simple test route
 app.get('/api/health', (req, res) => {
-  logger.info('Health check endpoint hit');
   res.json({ status: 'ok', message: 'Router Automation API is running' });
 });
 
