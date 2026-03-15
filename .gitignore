@@ -4,3 +4,5 @@
 /src/db/database.sqlite
 /src/tmp/*
 .vscode/settings.json
+src/db/database.sqlite-shm
+src/db/database.sqlite-wal

@@ -1,20 +1,23 @@
 const Database = require('better-sqlite3');
-
 const path = require('path');
 const fs = require('fs');
-const logger = require('../utils/logger');
 
-const { runSeed } = require('./seed'); // Import our new seed script
+// Note: We cannot import logger here anymore, because logger will soon 
+// import this file. That creates a circular dependency! 
+// We will just use console.log for DB initialization steps.
 const dbPath = path.join(__dirname, 'database.sqlite');
-
-// Check if the file exists BEFORE we let better-sqlite3 create it
 const dbExists = fs.existsSync(dbPath);
 
-const db = new Database(dbPath, { verbose: (msg) => logger.info(`[DB] ${msg}`) });
+const db = new Database(dbPath, { verbose: (msg) => console.log(`[DB] ${msg}`) });
 
+// HARDENING: Enable Write-Ahead Logging for massively improved concurrent performance
+db.pragma('journal_mode = WAL');
+// HARDENING: Optimize synchronous setting for WAL mode
+db.pragma('synchronous = NORMAL');
 
 function initializeDB() {
-  logger.info('Initializing Database Tables...');
+  console.log('Initializing Database Tables...');
+
   // 1. Create Switch Nodes Table
   db.exec(`
         CREATE TABLE IF NOT EXISTS switch_nodes (
@@ -23,6 +26,7 @@ function initializeDB() {
             switch_node_mac TEXT NOT NULL UNIQUE
         )
     `);
+
   // 2. Create Routers Table
   db.exec(`
         CREATE TABLE IF NOT EXISTS routers (
@@ -46,6 +50,7 @@ function initializeDB() {
             FOREIGN KEY (switch_node_id) REFERENCES switch_nodes(id)
         )
     `);
+
   // 3. Create Users Table
   db.exec(`
         CREATE TABLE IF NOT EXISTS users (
@@ -55,7 +60,19 @@ function initializeDB() {
             role TEXT DEFAULT 'user'
         )
     `);
-  logger.info('Database tables verified/created successfully.');
+
+  // 4. NEW: Create Logs Table
+  db.exec(`
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            level TEXT,
+            message TEXT,
+            metadata JSON
+        )
+    `);
+
+  console.log('Database tables verified/created successfully.');
 }
 
 // Run table creation
@@ -63,10 +80,11 @@ initializeDB();
 
 // Only run the seed script if the database file was just created
 if (!dbExists) {
-  logger.info('New database detected. Triggering seed script...');
+  console.log('New database detected. Triggering seed script...');
+  const { runSeed } = require('./seed');
   runSeed(db);
 } else {
-  logger.info('Existing database found. Skipping seed script.');
+  console.log('Existing database found. Skipping seed script.');
 }
 
 module.exports = db;
